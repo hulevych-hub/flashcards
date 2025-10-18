@@ -1,8 +1,8 @@
 // src/environments/environment.ts
-const baseUrl = 'http://192.168.1.4:51360';
+const baseUrl = 'http://192.168.1.4:61360';
 
 export const environment = {
-  production: false,
+  production: true,
   api: {
     baseUrl,
 

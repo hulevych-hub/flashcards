@@ -7,7 +7,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "http://0.0.0.0:61360;http://0.0.0.0:61361"
+      "applicationUrl": "http://0.0.0.0:51360;http://0.0.0.0:51361"
     },
     "API_PROD": {
       "commandName": "Project",
