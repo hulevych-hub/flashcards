@@ -24,12 +24,6 @@ builder.Services.AddScoped<RatingService>();
 builder.Services.AddScoped<StreakService>();
 builder.Services.AddScoped<SessionService>();
 
-
-builder.Services.AddControllers()
-    .AddJsonOptions(o => {
-        o.JsonSerializerOptions.PropertyNamingPolicy = null;
-    });
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -67,13 +61,13 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseRouting();
 app.UseCors("DefaultCorsPolicy");
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseRouting();
 app.UseStaticFiles(); // serves wwwroot and /images if they exist in app root
 
 app.MapControllers();

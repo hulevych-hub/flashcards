@@ -5,3 +5,7 @@ dotnet ef database update
 
 build docker file:
 	docker build -t flashcards-api:latest .
+
+
+	from the ubuntu:
+		docker build -t flashcards-api:latest https://github.com/hulevych-hub/flashcards.git#dev:api
