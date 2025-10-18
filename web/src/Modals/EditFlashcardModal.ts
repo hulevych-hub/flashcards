@@ -11,8 +11,11 @@ import { Flashcard } from '../models/Flashcard';
   standalone: true,
   imports: [NgIf, NgFor, FormsModule],
   template: `
-  <div class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" (click)="onBackdrop($event)">
-    <div class="card w-full max-w-2xl" (click)="$event.stopPropagation()">
+  <div
+  class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 overflow-y-auto"
+  (click)="onBackdrop($event)"
+>
+<div class="card w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-y-auto" (click)="$event.stopPropagation()">
       <div class="flex items-start justify-between gap-4">
         <h3 class="text-lg font-semibold">
           {{ flashcardId ? (viewOnly ? 'View' : 'Edit') : 'New' }} flashcard
