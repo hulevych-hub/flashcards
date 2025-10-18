@@ -32,4 +32,4 @@ COPY --from=build /out ./
 # ensure image folders exist
 RUN mkdir -p images/active images/removed
 
-ENTRYPOINT ["dotnet", "Flashcards.Api.dll"]
+ENTRYPOINT ["dotnet", "API.dll"]
