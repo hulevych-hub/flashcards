@@ -1,0 +1,96 @@
+<div class="card">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold">Ratings</h2>
+  </div>
+
+  <!-- Bulk selection actions -->
+  <div class="mt-3 flex items-center gap-3">
+    <label class="inline-flex items-center gap-2">
+      <input
+        type="checkbox"
+        class="h-4 w-4"
+        [checked]="allVisibleSelected()"
+        (change)="toggleSelectAllVisible()"
+        [disabled]="loading()" />
+      <span class="text-sm">Select all</span>
+    </label>
+
+    <span *ngIf="anySelected()" class="badge">{{ selectedCount() }} selected</span>
+
+    <button
+      class="btn-danger inline-flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+      (click)="deleteSelected()"
+      [disabled]="!canBulkDelete() || loading() || deleting()"
+      [title]="canBulkDelete() ? 'Delete selected' : 'Keep at least 3 ratings'">
+      <span *ngIf="deleting()" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+      <span>Delete selected</span>
+    </button>
+
+    <!-- right-side controls -->
+    <div class="ml-auto flex items-center gap-2">
+      <button
+        class="btn-ghost inline-flex items-center gap-2"
+        (click)="load()"
+        [disabled]="loading() || deleting()"
+        [attr.aria-busy]="loading() ? 'true' : null">
+        <span *ngIf="loading()" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+        <span>{{ loading() ? 'Refreshing…' : 'Refresh' }}</span>
+      </button>
+
+      <button class="btn-primary" (click)="openCreate()" [disabled]="loading() || deleting()">
+        New rating
+      </button>
+    </div>
+  </div>
+
+  <div class="mt-4 grid gap-2">
+    <div
+      *ngFor="let r of list() as rows"
+      class="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 rounded-xl border border-zinc-200 p-3">
+
+      <!-- Row checkbox -->
+      <input
+        type="checkbox"
+        class="h-4 w-4"
+        [checked]="isRowSelected((r).id)"
+        (change)="toggleRow((r).id)"
+        [disabled]="loading() || deleting()" />
+
+      <!-- Order badge -->
+      <span class="badge">Order: {{ (r).order ?? '—' }}</span>
+
+      <!-- Main info -->
+      <div class="min-w-0 flex items-center gap-3">
+        <span class="font-medium truncate">{{ (r).description }}</span>
+        <span *ngIf="(r).color" class="inline-flex items-center gap-1">
+          <span class="text-xs text-zinc-500">{{ (r).color }}</span>
+          <span class="h-4 w-4 rounded" [style.background-color]="(r).color"></span>
+        </span>
+      </div>
+
+      <!-- Row actions -->
+      <div class="flex gap-2">
+        <button
+          class="btn-ghost disabled:opacity-50 disabled:pointer-events-none"
+          (click)="openEdit(r.id!)"
+          [disabled]="loading() || deleting()">
+          Edit
+        </button>
+
+        <button
+          class="btn-danger disabled:opacity-50 disabled:pointer-events-none"
+          [disabled]="!canDeleteAny() || loading() || deleting()"
+          [title]="canDeleteAny() ? 'Delete rating' : 'Need at least 3 ratings'"
+          (click)="delete(r.id!)">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-edit-rating-modal
+  *ngIf="showModal()"
+  [ratingId]="editingId()"
+  (closed)="closeModal($event)">
+</app-edit-rating-modal>

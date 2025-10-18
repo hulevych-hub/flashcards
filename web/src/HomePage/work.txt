@@ -1,0 +1,293 @@
+import { Component, computed, effect, inject, signal, HostListener } from '@angular/core';
+import { AsyncPipe, NgFor, NgIf, NgStyle } from '@angular/common';
+import { ApiService } from '../services/api.service';
+import { StoreService } from '../state/store.service';
+import { Topic } from '../models/Topics';
+import { Rating } from '../models/Rating';
+import { Flashcard } from '../models/Flashcard';
+import dayjs from 'dayjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../environments/environment';
+
+@Component({
+  selector: 'app-home-page',
+  standalone: true,
+  imports: [NgIf, NgFor, AsyncPipe, NgStyle],
+  templateUrl: './HomePage.html',
+  styleUrl: './HomePage.scss'
+})
+export class HomePageComponent {
+  private api = inject(ApiService);
+  readonly store = inject(StoreService);
+
+  loading = signal(true);
+  index = signal(0);
+  showAnswer = signal(false);
+
+  isRatingBusy = signal(false);
+
+  ratingMenuOpen = signal(false);
+
+private http = inject(HttpClient);
+private driveIndex = signal<Record<string, string>>({});
+
+  // dropdown state
+  topicMenuOpen = signal(false);
+
+  readonly flashcards = this.store.filteredFlashcards;
+  readonly topics = this.store.topics;
+  readonly ratings = this.store.ratings;
+  readonly current = computed(() => this.store.filteredFlashcards()[this.index()] || null);
+
+  constructor() {
+    this.load();
+    // Reset index & hide answer whenever filters/sort change
+    effect(() => {
+      this.store.selectedTopicIds();
+      this.store.sortByDateDesc();
+      this.index.set(0);
+      this.showAnswer.set(false);
+    });
+  }
+
+  private loadDriveIndex() {
+  const base = 'https://www.googleapis.com/drive/v3/files';
+  const params = new HttpParams()
+    .set('key', environment.googleDrive.apiKey)
+    .set('q', `'${environment.googleDrive.folderId}' in parents and trashed = false`)
+    .set('pageSize', '1000')
+    .set('fields', 'nextPageToken,files(id,name)')
+    ;
+
+  // simple paged fetch (one page should be enough for most)
+  this.http.get<{ files: {id:string; name:string}[], nextPageToken?: string }>(base, { params })
+    .subscribe(res => {
+      const idx: Record<string, string> = {};
+      for (const f of (res.files || [])) idx[f.name] = f.id;
+      this.driveIndex.set(idx);
+    });
+}
+
+private toMediaUrl(id: string) {
+  return `${environment.googleDrive.mediaUrlPrefix}${id}?alt=media&key=${environment.googleDrive.apiKey}`;
+}
+
+toggleRatingMenu() { this.ratingMenuOpen.update(v => !v); }
+
+selectAllRatings() {
+  const all = this.ratings().map(r => r.id ?? 0);
+  this.store.selectedRatingIds.set(all);
+}
+
+clearRatings() { this.store.selectedRatingIds.set([]); }
+
+onRatingCheckbox(id: number, checked: boolean) {
+  const set = new Set<number>(this.store.selectedRatingIds().map(Number));
+  const idNum = Number(id);
+  checked ? set.add(idNum) : set.delete(idNum);
+  this.store.selectedRatingIds.set([...set]);
+}
+
+resolveFlashcardImage(name?: string | null): string | null {
+  if (!name) return null;
+  const raw = String(name).trim();
+
+  // If someone already stored a full URL or data: URL, just use it
+  if (/^(https?:)?\/\//i.test(raw) || /^data:image\//i.test(raw) || /^blob:/i.test(raw)) {
+    return raw;
+  }
+
+  const idx = this.driveIndex();
+  // 1) try exact filename
+  let id = idx[raw];
+
+  // 2) try with common extensions if the name has no dot
+  if (!id && !raw.includes('.')) {
+    const exts = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'];
+    for (const ext of exts) {
+      id = idx[raw + ext];
+      if (id) break;
+    }
+  }
+
+  return id ? this.toMediaUrl(id) : null;
+}
+
+
+  load() {
+  this.loading.set(true);
+  this.api.fetchTopics().subscribe((t: Topic[]) => this.store.topics.set(t));
+  this.api.fetchRatings().subscribe((r: Rating[]) => this.store.ratings.set(r));
+  this.api.fetchFlashcards().subscribe((f: Flashcard[]) => {
+    this.store.flashcards.set(f);
+    this.loading.set(false);
+  });
+
+  // 👉 build the Drive filename index
+  this.loadDriveIndex();
+}
+
+  // --- Practice controls ---
+  toggleAnswer() { this.showAnswer.update(v => !v); }
+  next() {
+    if (this.index() < this.flashcards().length - 1) {
+      this.index.update(i => i + 1);
+      this.showAnswer.set(false);
+    }
+  }
+  prev() {
+    if (this.index() > 0) {
+      this.index.update(i => i - 1);
+      this.showAnswer.set(false);
+    }
+  }
+
+  setSort(desc: boolean) { this.store.sortByDateDesc.set(desc); }
+
+  // --- Topic dropdown helpers (matches template) ---
+  toggleTopicMenu() { this.topicMenuOpen.update(v => !v); }
+  clearTopics() { this.store.selectedTopicIds.set([]); }
+  selectAllTopics() { this.store.selectedTopicIds.set(this.topics().map(t => t.id ? t.id : 0)); }
+  onTopicCheckbox(id: number, checked: boolean) {
+    const set = new Set<number>(this.store.selectedTopicIds());
+    checked ? set.add(id) : set.delete(id);
+    this.store.selectedTopicIds.set([...set]);
+  }
+
+  // --- Ratings inside the card (buttons say easy/medium/hard) ---
+  onRateClick(level: string) {
+    console.log(this.ratings())
+    const r = this.ratings().find(x => x.description.toLowerCase() == level.toLowerCase());
+    if (r) this.rate(r.id ? r.id : 0);
+  }
+
+  ratingPillClass(name: string): string {
+  const base = 'inline-flex items-center rounded-full px-3 py-1.5 text-xs sm:text-sm font-medium shadow hover:shadow-md active:scale-95';
+  switch ((name || '').toLowerCase()) {
+    case 'easy':   return `${base} bg-emerald-600 text-white`;
+    case 'medium': return `${base} bg-amber-600 text-white`;
+    case 'hard':   return `${base} bg-rose-600 text-white`;
+    default:       return `${base} bg-zinc-800 text-white`;
+  }
+}
+
+  rate(ratingId: number) {
+  const c = this.current();
+  if (!c || this.isRatingBusy()) return;
+
+  this.isRatingBusy.set(true);
+
+  const rateDate = new Date().toISOString();
+
+  // Optimistic update
+  const prev = this.store.flashcards();
+  this.store.flashcards.set(
+    prev.map(f => f.id === c.id ? { ...f, ratingId, lastRated: rateDate } : f)
+  );
+
+  this.api.updateFlashcardRating(c.notionId, c.id, ratingId, rateDate).subscribe({
+    next: () => {
+      this.showAnswer.set(false);
+      this.next();
+      this.isRatingBusy.set(false);
+    },
+    error: () => {
+      // rollback on error
+      this.store.flashcards.set(prev);
+      this.isRatingBusy.set(false);
+    }
+  });
+}
+
+  // --- Keyboard shortcuts (Space = flip, arrows = nav) ---
+  @HostListener('window:keydown', ['$event'])
+  handleKeys(e: KeyboardEvent) {
+    if (e.code === 'Space') { e.preventDefault(); this.toggleAnswer(); }
+    if (e.code === 'ArrowRight') this.next();
+    if (e.code === 'ArrowLeft') this.prev();
+  }
+
+  // ---- base64 image helper (robust) ----
+  normalizeImageSource(img?: string | null): string | null {
+  if (!img) return null;
+  const s = String(img).trim();
+
+  // If it’s already a URL or a data URL, return as-is
+  if (/^(https?:)?\/\//i.test(s) || /^data:image\//i.test(s) || /^blob:/i.test(s)) {
+    return s;
+  }
+
+  // Fallback: treat it as base64 (legacy)
+  const mime =
+    s.startsWith('/9j/') ? 'image/jpeg' :
+    s.startsWith('iVBORw0KGgo') ? 'image/png' :
+    s.startsWith('R0lGOD') ? 'image/gif' :
+    s.startsWith('UklGR') ? 'image/webp' :
+    s.startsWith('Qk') ? 'image/bmp' :
+    s.startsWith('PHN2Zy') ? 'image/svg+xml' :
+    'image/png';
+
+  return `data:${mime};base64,${s}`;
+}
+
+  private guessMimeFromBase64(b64: string): string {
+    if (b64.startsWith('/9j/')) return 'image/jpeg';       // JPEG
+    if (b64.startsWith('iVBORw0KGgo')) return 'image/png'; // PNG
+    if (b64.startsWith('R0lGOD')) return 'image/gif';      // GIF
+    if (b64.startsWith('UklGR')) return 'image/webp';      // WEBP
+    if (b64.startsWith('Qk')) return 'image/bmp';          // BMP
+    if (b64.startsWith('PHN2Zy')) return 'image/svg+xml';  // SVG (base64)
+    return 'image/png'; // safe fallback
+  }
+  // --------------------------------------
+
+  formatDate(d?: string | Date | null) {
+    if (!d) return '—';
+    return dayjs(d).format('YYYY-MM-DD HH:mm');
+  }
+
+  getRatingStyles(r: Rating) {
+  const bg = this.normalizeHex(r.color);
+  const fg = this.readableTextColor(bg);
+  return bg
+    ? { 'background-color': bg, 'color': fg }
+    : {}; // fallback to default class styling if no color
+}
+
+/** Ensure we have a valid hex like #RRGGBB */
+private normalizeHex(c?: string | null): string | null {
+  if (!c) return null;
+  let s = c.trim();
+  if (!s) return null;
+  if (s[0] !== '#') s = '#' + s;
+  // expand #RGB to #RRGGBB
+  if (/^#([0-9a-fA-F]{3})$/.test(s)) {
+    s = '#' + s.slice(1).split('').map(ch => ch + ch).join('');
+  }
+  return /^#([0-9a-fA-F]{6})$/.test(s) ? s : null;
+}
+
+/** Choose white/black text for contrast against a hex background */
+private readableTextColor(hex: string | null): string {
+  if (!hex) return '#ffffff';
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  // convert to linear
+  const toLin = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  const R = toLin(r), G = toLin(g), B = toLin(b);
+  const L = 0.2126 * R + 0.7152 * G + 0.0722 * B; // relative luminance
+  return L > 0.5 ? '#111827' : '#ffffff'; // dark text on light bg, white text on dark bg
+}
+
+readonly sortedRatings = computed(() => {
+  return [...this.ratings()].sort((a, b) => {
+    const ao = a.order ?? Number.POSITIVE_INFINITY;
+    const bo = b.order ?? Number.POSITIVE_INFINITY;
+    if (ao !== bo) return ao - bo;
+    const an = (a.description ?? '').toString().toLowerCase();
+    const bn = (b.description ?? '').toString().toLowerCase();
+    return an.localeCompare(bn);
+  });
+});
+}

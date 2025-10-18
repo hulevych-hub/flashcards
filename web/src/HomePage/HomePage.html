@@ -1,0 +1,342 @@
+<ng-container *ngIf="!loading(); else firstLoading">
+  <div class="grid gap-4">
+    <!-- Filters + Session bar -->
+    <div class="card">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <!-- Left: filters -->
+        <div class="flex items-center gap-3">
+          <!-- Topics -->
+          <div class="relative">
+            <button class="btn-ghost" (click)="toggleTopicMenu()">
+              Topics
+              <span class="badge ml-2" *ngIf="store.selectedTopicIds().length; else allTopics">
+                {{ store.selectedTopicIds().length }} selected
+              </span>
+              <ng-template #allTopics><span class="badge">All</span></ng-template>
+            </button>
+            <div
+              *ngIf="topicMenuOpen()"
+              class="absolute left-0 mt-2 w-72 rounded-2xl border border-zinc-200 bg-white shadow-soft p-2 z-10"
+            >
+              <div class="flex items-center justify-between">
+                <div class="label">Filter by topic</div>
+                <div class="flex gap-1">
+                  <button class="btn-ghost text-xs" (click)="selectAllTopics()">All</button>
+                  <button class="btn-ghost text-xs" (click)="clearTopics()">Clear</button>
+                </div>
+              </div>
+              <div class="mt-2 max-h-60 overflow-auto">
+                <label
+                  *ngFor="let t of topics()"
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-50"
+                >
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4"
+                    [checked]="store.selectedTopicIds().includes(t.id ?? 0)"
+                    (change)="onTopicCheckbox(t.id ?? 0, $any($event.target).checked)"
+                  />
+                  <span>{{ t.description }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ratings -->
+          <div class="relative">
+            <button class="btn-ghost" (click)="toggleRatingMenu()">
+              Ratings
+              <span class="badge ml-2" *ngIf="store.selectedRatingIds?.()?.length; else allRatings">
+                {{ store.selectedRatingIds().length }} selected
+              </span>
+              <ng-template #allRatings><span class="badge">All</span></ng-template>
+            </button>
+            <div
+              *ngIf="ratingMenuOpen()"
+              class="absolute left-0 mt-2 w-64 rounded-2xl border border-zinc-200 bg-white shadow-soft p-2 z-10"
+            >
+              <div class="flex items-center justify-between">
+                <div class="label">Filter by rating</div>
+                <div class="flex gap-1">
+                  <button class="btn-ghost text-xs" (click)="selectAllRatings()">All</button>
+                  <button class="btn-ghost text-xs" (click)="clearRatings()">Clear</button>
+                </div>
+              </div>
+              <div class="mt-2 max-h-60 overflow-auto">
+                <label
+                  *ngFor="let r of ratings()"
+                  class="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-50"
+                >
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4"
+                    [checked]="store.selectedRatingIds().includes(r.id ?? 0)"
+                    (change)="onRatingCheckbox(r.id ?? 0, $any($event.target).checked)"
+                  />
+                  <span>{{ r.description }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: session info -->
+        <!-- SESSION BAR (timer starts after first flip) -->
+        <div *ngIf="sessionRunning()" class="card flex items-center gap-3">
+          <span class="badge">⏱ {{ displayElapsed() }}</span>
+          <span class="badge">⭐ {{ points() }} pts</span>
+
+          <div class="ml-auto flex items-center gap-2">
+            <button class="btn-ghost" (click)="restart()">Restart</button>
+            <button class="btn-primary" (click)="finishSession()">Finish</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="card" *ngIf="current() && !noMoreCards(); else maybeDoneOrEmpty">
+      <section class="relative grid place-items-center">
+        <!-- Side arrows -->
+        <button
+          *ngIf="pointer() > 0"
+          aria-label="Previous"
+          class="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -ml-2 h-12 w-12 rounded-full bg-white border border-zinc-200 shadow hover:shadow-md transition items-center justify-center active:scale-95"
+          (click)="prev()"
+          title="Previous (←)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-6 w-6 block">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <button
+          *ngIf="pointer() < history().length - 1"
+          aria-label="Next"
+          class="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 -mr-2 h-12 w-12 rounded-full bg-white border border-zinc-200 shadow hover:shadow-md transition items-center justify-center active:scale-95"
+          (click)="next()"
+          title="Next (→)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-6 w-6 block">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+
+        <!-- Stack + card -->
+        <div class="w-full max-w-[720px] px-4 sm:px-12">
+          <div class="mb-3 flex items-center justify-between">
+            <span
+              class="inline-flex items-center rounded-lg bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700"
+            >
+              Flashcard ID: <span class="ml-1">{{ current()?.id }}</span>
+            </span>
+            <span class="text-xs text-zinc-500"
+              >Last rated: {{ getRatingName() }} ({{ formatDate(current()?.lastRated) }})</span
+            >
+          </div>
+
+          <div class="relative select-none">
+            <div
+              class="absolute inset-0 translate-x-2 translate-y-2 rounded-[22px] bg-white border border-zinc-200 opacity-60"
+            ></div>
+            <div
+              class="absolute inset-0 translate-x-1 translate-y-1 rounded-[22px] bg-white border border-zinc-200 opacity-80"
+            ></div>
+
+            <div class="relative">
+              <div
+                class="relative flip-card h-[380px] sm:h-[500px] rounded-[24px] border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 shadow-[0_20px_40px_rgba(0,0,0,0.06)] cursor-pointer"
+                [class.flipped]="showAnswer()"
+                (click)="toggleAnswer()"
+              >
+                <!-- FRONT -->
+                <div class="flip-face absolute inset-0 p-6 sm:p-8 flex flex-col">
+                  <header class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg sm:text-xl font-semibold tracking-tight">Question</h2>
+                    <span class="text-xs text-zinc-500">Tap/space to flip</span>
+                  </header>
+
+                  <div class="flex-1 flex flex-col gap-3">
+                    <p class="text-zinc-800 leading-relaxed text-base sm:text-lg whitespace-pre-line">
+                      {{ current()?.question }}
+                    </p>
+
+                    <div *ngIf="currentQuestionImg()" class="mt-1 h-[220px] sm:h-[300px]">
+                      <img
+                        class="h-full w-full object-contain rounded-xl"
+                        [src]="currentQuestionImg()"
+                        alt="Question image"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  </div>
+
+                  <footer class="mt-4 flex items-center justify-end">
+                    <span class="text-xs text-zinc-500"
+                      >{{ history().length ? pointer() + 1 : 0 }} /
+                      {{ practiceList().length }}</span
+                    >
+                  </footer>
+                </div>
+
+                <!-- BACK -->
+                <div class="flip-face flip-back absolute inset-0 p-6 sm:p-8 flex flex-col">
+                  <header class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg sm:text-xl font-semibold tracking-tight">Answer</h2>
+                    <span class="text-xs text-zinc-500">Tap/space to flip</span>
+                  </header>
+
+                  <div class="flex-1 flex flex-col gap-3">
+                    <p class="text-zinc-800 leading-relaxed text-base sm:text-lg whitespace-pre-line">
+                      {{ current()?.answer }}
+                    </p>
+
+                    <div
+                      *ngIf="showAnswer() && currentAnswerImg()"
+                      class="mt-1 h-[220px] sm:h-[300px]"
+                    >
+                      <img [src]="currentAnswerImg()" alt="Question preview"
+         class="h-40 w-full object-contain rounded-lg" />
+                    </div>
+                  </div>
+                  <!-- Ratings row (fixed, below image area) -->
+                  <div
+                    class="mt-6 flex flex-wrap justify-center gap-2"
+                    *ngIf="showAnswer() && pointer() === history().length - 1"
+                  >
+                    <button
+                      *ngFor="let r of sortedRatings()"
+                      class="inline-flex items-center rounded-full px-3 py-1.5 text-xs sm:text-sm font-medium shadow hover:shadow-md active:scale-95"
+                      [ngStyle]="getRatingStyles(r)"
+                      (click)="$event.stopPropagation(); rate(r.id ?? 0)"
+                      [disabled]="isRatingBusy() || pointer() !== history().length - 1"
+                    >
+                      {{ r.description }}
+                    </button>
+                  </div>
+                  <footer class="mt-4 flex items-center justify-end">
+                    <span class="text-xs text-zinc-500"
+                      >{{ history().length ? pointer() + 1 : 0 }} /
+                      {{ practiceList().length }}</span
+                    >
+                  </footer>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation under the card -->
+          <div class="mt-6 flex items-center justify-center gap-3">
+            <button
+              *ngIf="pointer() > 0"
+              class="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:shadow active:scale-95"
+              (click)="prev()"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="mr-2 h-5 w-5 block">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Back
+            </button>
+            <button
+              class="inline-flex items-center rounded-xl bg-zinc-900 text-white px-4 py-2 text-sm font-medium shadow hover:bg-zinc-800 active:scale-95"
+              (click)="toggleAnswer()"
+            >
+              {{ showAnswer() ? 'Hide answer' : 'Show answer' }}
+            </button>
+            <button
+              *ngIf="pointer() < history().length - 1"
+              class="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:shadow active:scale-95"
+              (click)="next()"
+            >
+              Next
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="ml-2 h-5 w-5 block">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="card text-center text-zinc-600">No flashcards match your filters.</div>
+    </ng-template>
+
+    <ng-template #maybeDoneOrEmpty>
+      <!-- If there are cards but no more to show next, show the "done" card;
+       otherwise fall back to the usual empty state -->
+      <ng-container *ngIf="practiceList().length > 0; else emptyState">
+        <div class="card text-center py-12">
+          <div class="text-2xl font-semibold">Well done 🎉</div>
+          <div class="mt-1 text-zinc-600">You checked all the flashcards.</div>
+
+          <div class="mt-6 flex items-center justify-center gap-3">
+            <button class="btn-ghost" (click)="restart()">Restart</button>
+            <button class="btn-primary" (click)="finishSession()">Finish</button>
+          </div>
+        </div>
+      </ng-container>
+    </ng-template>
+
+    <!-- Finish confirm modal -->
+    <div *ngIf="finishOpen()" class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div class="card w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-2">Finish session?</h3>
+        <p class="text-sm text-zinc-600">Your timer will stop and results will be saved.</p>
+        <div class="mt-4 flex justify-end gap-2">
+          <button class="btn-ghost" (click)="cancelFinish()">Cancel</button>
+          <button class="btn-primary" (click)="confirmFinish()">Finish</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary modal -->
+    <div *ngIf="summaryOpen()" class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+      <div class="card w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-2">Session summary</h3>
+        <div class="text-sm text-zinc-700 grid gap-1">
+          <div>
+            Duration: {{ Math.floor(finishSummary().durationMs / 60000) }}m
+            {{ Math.floor((finishSummary().durationMs % 60000) / 1000) }}s
+          </div>
+          <div>Cards seen: {{ finishSummary().seen }}</div>
+          <div>Points: {{ finishSummary().points }}</div>
+        </div>
+        <div class="mt-4 flex justify-end">
+          <button class="btn-primary" (click)="closeSummary()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>
+<!-- ADD THIS TEMPLATE AT THE BOTTOM OF THE FILE -->
+<ng-template #firstLoading>
+  <div class="h-[70vh] grid place-items-center">
+    <div class="flex flex-col items-center gap-3">
+      <div
+        class="h-10 w-10 rounded-full border-2 border-zinc-300 border-t-zinc-900 animate-spin"
+      ></div>
+      <div class="text-sm text-zinc-600">Loading your flashcards…</div>
+    </div>
+  </div>
+</ng-template>

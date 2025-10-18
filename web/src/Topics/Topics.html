@@ -1,0 +1,76 @@
+<div class="card">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold">Topics</h2>
+  </div>
+
+  <!-- Selection helpers -->
+  <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+     <!-- Bulk delete -->
+      <button
+        class="btn-danger inline-flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+        (click)="deleteSelected()"
+        [disabled]="uiBusy() || deletableSelected().length === 0"
+        [attr.aria-busy]="deleting() ? 'true' : null"
+        title="Delete selected topics (only those not used by flashcards)">
+        <span *ngIf="deleting()" class="h-4 w-4 rounded-full border-2 border-white/70 border-t-transparent animate-spin"></span>
+        <span>Delete selected ({{ deletableSelected().length }})</span>
+      </button>
+    <button class="btn-ghost" (click)="selectAllDeletable()" [disabled]="uiBusy()">Select all deletable</button>
+    <button class="btn-ghost" (click)="clearSelection()" [disabled]="uiBusy() || selection().size === 0">Clear selection</button>
+  
+    <div class="ml-auto flex items-center gap-2">
+      <!-- Refresh with spinner -->
+      <button
+        class="btn-ghost inline-flex items-center gap-2"
+        (click)="load()"
+        [disabled]="uiBusy()"
+        [attr.aria-busy]="loading() ? 'true' : null">
+        <span *ngIf="loading()" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+        <span>{{ loading() ? 'Refreshing…' : 'Refresh' }}</span>
+      </button>
+
+      <button class="btn-primary" (click)="openCreate()" [disabled]="uiBusy()">New topic</button>
+    </div>
+  </div>
+
+  <div class="mt-4 grid gap-2">
+    <div
+      *ngFor="let t of store.topics()"
+      class="flex items-center justify-between rounded-xl border border-zinc-200 p-3">
+
+      <div class="flex items-center gap-3">
+        <!-- Row checkbox (disabled if topic is in use or UI busy) -->
+        <input
+          type="checkbox"
+          class="h-4 w-4"
+          [disabled]="!canDeleteTopic(t.id ?? 0) || uiBusy()"
+          [checked]="isSelected(t.id ?? 0)"
+          (change)="onSelect((t.id ?? 0), $any($event.target).checked)" />
+
+        <div class="font-medium">{{ t.description }}</div>
+
+        <span class="badge" *ngIf="(topicUsage().get(t.id ?? 0) ?? 0) > 0">
+          {{ topicUsage().get(t.id ?? 0) }} flashcard(s) using
+        </span>
+      </div>
+
+      <div class="flex gap-2">
+        <button class="btn-ghost" (click)="openEdit(t.id ?? 0)" [disabled]="uiBusy()">Edit</button>
+
+        <button
+          class="btn-danger disabled:opacity-50 disabled:pointer-events-none"
+          [disabled]="!canDeleteTopic(t.id ?? 0) || uiBusy()"
+          [title]="canDeleteTopic(t.id ?? 0) ? 'Delete topic' : 'Cannot delete: topic is used by flashcards'"
+          (click)="deleteOne(t.id ?? 0)">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-edit-topic-modal
+  *ngIf="showModal()"
+  [topicId]="editingId()"
+  (closed)="closeModal($event)">
+</app-edit-topic-modal>

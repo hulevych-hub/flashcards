@@ -1,0 +1,87 @@
+<!-- Top brand bar (shown on login even if the app bar is hidden) -->
+<header class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-zinc-200">
+  <div class="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-white font-bold">VF</span>
+      <h1 class="text-lg sm:text-xl font-semibold tracking-tight">
+        Vanessa’s Flashcards
+      </h1>
+    </div>
+  </div>
+</header>
+
+<!-- Page body -->
+<main class="min-h-[calc(90vh-64px)] bg-gradient-to-b from-zinc-50 to-white">
+  <div class="mx-auto max-w-5xl px-4">
+    <div class="min-h-[calc(80vh-64px)] py-12 sm:py-16 grid place-items-center">
+      <div class="w-full max-w-md">
+        <div class="card p-6 sm:p-8">
+          <h2 class="text-xl font-semibold tracking-tight">Sign in</h2>
+
+          <!-- Error -->
+          <div *ngIf="error()" class="mt-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 px-3 py-2 text-sm">
+            {{ error() }}
+          </div>
+
+          <!-- Form -->
+          <form class="mt-6 grid gap-3" (ngSubmit)="submit()">
+            <div>
+              <label class="label">Username</label>
+              <input
+                class="input"
+                name="username"
+                [(ngModel)]="username"
+                autocomplete="username"
+                placeholder="username"
+              />
+            </div>
+            <div>
+              <label class="label">Password</label>
+              <input
+                class="input"
+                name="password"
+                type="password"
+                [(ngModel)]="password"
+                autocomplete="current-password"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              class="btn-primary mt-2 w-full disabled:opacity-60 disabled:cursor-not-allowed"
+              [disabled]="loading()"
+              type="submit">
+              <span *ngIf="!loading()">Sign in</span>
+              <span *ngIf="loading()" class="inline-flex items-center gap-2">
+                <span class="h-4 w-4 rounded-full border-2 border-zinc-300 border-t-zinc-900 animate-spin"></span>
+                Signing in…
+              </span>
+            </button>
+          </form>
+
+          <div class="mt-4 text-xs text-zinc-500 text-center">
+            Press <span class="font-medium">Enter</span> to submit
+          </div>
+        </div>
+
+        <!-- Tiny footer -->
+        <div class="mt-6 text-center text-xs text-zinc-500">
+          © {{ getYear() }} Vanessa’s Flashcards
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- place this near the end of the template, outside the form, so it overlays -->
+<div *ngIf="showWelcome()" class="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+  <div class="card inline-block w-auto max-w-[92vw] sm:max-w-xl md:max-w-2xl text-center px-6 sm:px-8 py-6 animate-[fadeIn_.2s_ease]">
+    <h2 class="text-xl font-semibold tracking-tight">Welcome back princess 👸</h2>
+    <p class="mt-1 text-sm text-zinc-600 break-words">
+      ❤️ You are amazing and I hope you have a wonderful study session! ❤️
+    </p>
+    <div class="mt-4">
+      <button class="btn-primary" (click)="gotToHome()">Continue</button>
+    </div>
+  </div>
+</div>
+
+</main>

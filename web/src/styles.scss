@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App-wide utilities */
+.container-slim { @apply max-w-5xl mx-auto px-4; }
+.card { @apply bg-white rounded-2xl shadow-soft p-4; }
+.btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium transition active:scale-[.98]; }
+.btn-primary { @apply btn bg-zinc-900 text-white hover:bg-zinc-800; }
+.btn-ghost { @apply btn bg-transparent hover:bg-zinc-100; }
+.btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+.input { @apply w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-300; }
+.select { @apply input; }
+.label { @apply text-sm font-medium text-zinc-700; }
+.badge { @apply inline-flex items-center rounded-lg bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700; }
+
+
+/* Flip animation */
+.flip-container { perspective: 1000px; }
+.flip-card { transition: transform 0.6s; transform-style: preserve-3d; }
+.flip-card.flipped { transform: rotateY(180deg); }
+.flip-face { backface-visibility: hidden; }
+.flip-back { transform: rotateY(180deg); }

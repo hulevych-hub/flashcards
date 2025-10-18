@@ -1,0 +1,22 @@
+{
+  "profiles": {
+    "API_DEV": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "http://0.0.0.0:61360;http://0.0.0.0:61361"
+    },
+    "API_PROD": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      },
+      "applicationUrl": "http://0.0.0.0:61360;http://0.0.0.0:61361"
+    }
+  }
+}

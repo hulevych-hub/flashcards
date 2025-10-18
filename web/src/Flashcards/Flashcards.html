@@ -1,0 +1,186 @@
+<div class="card" [attr.aria-busy]="(loading() || deleting()) ? 'true' : null">
+  <div class="flex items-center gap-2 mb-5">
+    <h2 class="text-lg font-semibold">Flashcards</h2>
+      <!-- Filters -->
+  <div class="flex flex-wrap items-center gap-2">
+    <!-- Topics -->
+    <div class="relative">
+      <button
+        class="btn-ghost disabled:opacity-50 disabled:pointer-events-none"
+        (click)="toggleTopicMenu()"
+        [disabled]="loading() || deleting()">
+        Topics
+        <span class="badge ml-2">
+          {{ selectedTopicIds().length ? (selectedTopicIds().length + ' selected') : 'All' }}
+        </span>
+      </button>
+
+      <div *ngIf="topicMenuOpen()" class="absolute left-0 mt-2 w-72 rounded-2xl border border-zinc-200 bg-white shadow-soft p-2 z-10">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium">Filter by topic</span>
+          <div class="flex gap-1">
+            <button
+              class="btn-ghost text-xs disabled:opacity-50 disabled:pointer-events-none"
+              (click)="selectAllTopics()"
+              [disabled]="loading() || deleting()">All</button>
+            <button
+              class="btn-ghost text-xs disabled:opacity-50 disabled:pointer-events-none"
+              (click)="clearTopics()"
+              [disabled]="loading() || deleting()">Clear</button>
+          </div>
+        </div>
+
+        <div class="max-h-60 overflow-auto pr-1">
+          <label *ngFor="let t of store.topics()" class="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-50">
+            <input
+              type="checkbox"
+              class="h-4 w-4"
+              [checked]="isTopicChecked(t.id ? t.id : 0)"
+              (change)="onTopicChange(t.id ? t.id : 0, $any($event.target).checked)"
+              [disabled]="loading() || deleting()" />
+            <span class="text-sm">{{ t.description }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ratings -->
+    <div class="relative">
+      <button
+        class="btn-ghost disabled:opacity-50 disabled:pointer-events-none"
+        (click)="toggleRatingMenu()"
+        [disabled]="loading() || deleting()">
+        Ratings
+        <span class="badge ml-2">
+          {{ selectedRatingIds().length ? (selectedRatingIds().length + ' selected') : 'All' }}
+        </span>
+      </button>
+
+      <div *ngIf="ratingMenuOpen()" class="absolute left-0 mt-2 w-64 rounded-2xl border border-zinc-200 bg-white shadow-soft p-2 z-10">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium">Filter by rating</span>
+          <div class="flex gap-1">
+            <button
+              class="btn-ghost text-xs disabled:opacity-50 disabled:pointer-events-none"
+              (click)="selectAllRatings()"
+              [disabled]="loading() || deleting()">All</button>
+            <button
+              class="btn-ghost text-xs disabled:opacity-50 disabled:pointer-events-none"
+              (click)="clearRatings()"
+              [disabled]="loading() || deleting()">Clear</button>
+          </div>
+        </div>
+
+        <div class="max-h-60 overflow-auto pr-1">
+          <label *ngFor="let r of store.ratings()" class="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-50">
+            <input
+              type="checkbox"
+              class="h-4 w-4"
+              [checked]="isRatingChecked(r.id ? r.id : 0)"
+              (change)="onRatingChange(r.id ? r.id : 0, $any($event.target).checked)"
+              [disabled]="loading() || deleting()" />
+            <span class="text-sm capitalize">{{ r.description }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Count -->
+    <span class="badge">{{ list().length }} shown</span>
+
+    <!-- Bulk selection actions -->
+    
+  </div>
+  </div>
+
+  <div class="ml-auto flex items-center gap-2">
+      <label class="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          class="h-4 w-4"
+          [checked]="allVisibleSelected()"
+          (change)="toggleSelectAllVisible()"
+          [disabled]="loading() || deleting()" />
+        <span class="text-sm">Select all (filtered)</span>
+      </label>
+
+      <span *ngIf="anySelected()" class="badge">{{ selectedCount() }} selected</span>
+
+      <button
+        class="btn-danger inline-flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+        (click)="deleteSelected()"
+        [disabled]="!anySelected() || deleting() || loading()">
+        <span *ngIf="deleting()" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+        <span>Delete selected</span>
+      </button>
+
+      <div class="ml-auto flex items-center gap-2">
+      <button
+        class="btn-ghost inline-flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+        (click)="load()"
+        [disabled]="loading() || deleting()">
+        <span *ngIf="loading()" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+        <span>{{ loading() ? 'Refreshing…' : 'Refresh' }}</span>
+      </button>
+
+      <button
+        class="btn-primary disabled:opacity-50 disabled:pointer-events-none"
+        (click)="openCreate()"
+        [disabled]="loading() || deleting()">New flashcard</button>
+    </div>
+    </div>
+
+  <!-- List (filtered) -->
+  <div class="mt-4 grid gap-2">
+    <div
+      *ngFor="let f of list()"
+      class="grid grid-cols-[auto_auto_1fr_auto] items-center gap-3 rounded-xl border border-zinc-200 p-3">
+
+      <!-- Row checkbox -->
+      <input
+        type="checkbox"
+        class="h-4 w-4"
+        [checked]="isRowSelected(f.id)"
+        (change)="toggleRow(f.id)"
+        [disabled]="loading() || deleting()" />
+
+      <span class="badge">ID: {{ f.id }}</span>
+
+      <div class="min-w-0">
+        <div class="font-medium truncate">Q: {{ f.question }}</div>
+        <div class="text-zinc-600 truncate">A: {{ f.answer }}</div>
+        <div class="mt-1 flex flex-wrap gap-2 text-xs text-zinc-500">
+          <span *ngIf="f.topicId != null" class="badge">Topic: {{ topicName(f.topicId) }}</span>
+          <span *ngIf="f.ratingId != null" class="badge">Rating: {{ ratingName(f.ratingId) }}</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button
+          class="btn-ghost disabled:opacity-50 disabled:pointer-events-none"
+          title="View"
+          (click)="openView(f.id)"
+          [disabled]="loading() || deleting()">Show</button>
+
+        <button
+          class="btn-ghost disabled:opacity-50 disabled:pointer-events-none"
+          title="Edit"
+          (click)="openEdit(f.id)"
+          [disabled]="loading() || deleting()">Edit</button>
+
+        <button
+          class="btn-danger disabled:opacity-50 disabled:pointer-events-none"
+          title="Delete"
+          (click)="f.id !== null ? delete(f.id) : null"
+          [disabled]="deleting() || loading()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-edit-flashcard-modal
+  *ngIf="showModal()"
+  [flashcardId]="editingId()"
+  [viewOnly]="viewOnlyId() !== null"
+  (closed)="closeModal($event)">
+</app-edit-flashcard-modal>
