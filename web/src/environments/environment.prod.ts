@@ -1,5 +1,5 @@
 // src/environments/environment.ts
-const baseUrl = 'http://192.168.1.4:61360';
+const baseUrl = 'http://192.168.1.4/flashcards-api';
 
 export const environment = {
   production: true,
