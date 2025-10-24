@@ -5,10 +5,10 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "start:prod": "ng serve --configuration production",
+    "start:prod": "ng serve --configuration production --base-href /flashcards --deploy-url /flashcards",
     "build": "ng build",
-    "build:prod": "ng build --configuration production",
-    "watch": "ng build --watch --configuration development",
+    "build:prod": "ng build --configuration production --base-href /flashcards --deploy-url /flashcards",
+    "watch": "ng build --watch --configuration development --base-href /flashcards --deploy-url /flashcards",
     "test": "ng test"
   },
   "prettier": {

@@ -11,7 +11,7 @@ RUN if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
 # Copy source and build
 COPY . .
 # Prod build (adjust if your project name/outputPath differs)
-RUN npm run build -- --configuration production
+RUN npm run build -- --configuration production --base-href /flashcards --deploy-url /flashcards
 
 # ---- Run stage ----
 FROM nginx:1.27-alpine
