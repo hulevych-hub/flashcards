@@ -19,7 +19,7 @@ import { AuthService } from '../services/auth.service';
       <a routerLink="/" class="btn-ghost">Practice</a>
       <a routerLink="/topics" class="btn-ghost">Topics</a>
       <a routerLink="/ratings" class="btn-ghost">Ratings</a>
-      <a routerLink="/flashcards" class="btn-ghost">Flashcards</a>
+      <a routerLink="/create" class="btn-ghost">Flashcards</a>
     </nav>
   </div>
 </header>
